@@ -1,12 +1,13 @@
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 
+// Définition du schéma pour le projet
 const projectSchema = new mongoose.Schema({
   name: {
     type: String,
-    required: true,
+    required: true,  // Le nom du projet est obligatoire
   },
   description: {
-    type: String,
+    type: String,  // Utilisez String au lieu de string
     required: true,
   },
   startDate: {
@@ -20,7 +21,10 @@ const projectSchema = new mongoose.Schema({
   budget: {
     type: Number,
     required: true,
-  }
+  },
 });
 
-module.exports = mongoose.model('Project', projectSchema);
+// Création du modèle à partir du schéma
+const Project = mongoose.model("Project", projectSchema);
+
+module.exports = Project;
