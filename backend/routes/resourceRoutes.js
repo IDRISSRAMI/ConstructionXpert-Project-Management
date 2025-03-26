@@ -2,7 +2,7 @@ const express = require("express");
 const router = express.Router();
 const { Resource, validateResource } = require("../models/Resource");
 
-// Récupération de toutes les ressources
+
 router.get("/", async (req, res) => {
     try {
         const resources = await Resource.find();
@@ -12,7 +12,18 @@ router.get("/", async (req, res) => {
     }
 });
 
-// Récupération d'une ressource par son ID
+
+router.get("/project/:projectId", async (req, res) => {
+    try {
+        const projectId = req.params.projectId;
+        const resources = await Resource.find({ projectId: projectId });
+        res.status(200).json(resources);
+    } catch (error) {
+        res.status(500).json({ message: "Erreur lors de la récupération des ressources", error: error.message });
+    }
+});
+
+
 router.get("/:id", async (req, res) => {
     try {
         const resource = await Resource.findById(req.params.id);
@@ -27,15 +38,20 @@ router.get("/:id", async (req, res) => {
     }
 });
 
-// Création d'une ressource
+
 router.post("/", async (req, res) => {
-    // Validation des données
+    
     const { error } = validateResource(req.body);
     if (error) return res.status(400).json({ message: error.details[0].message });
     
     try {
-        const { nom, description, dateDebut, dateFin } = req.body;
-        const newResource = new Resource({ nom, description, dateDebut, dateFin });
+        const { name, type, quantity, supplier } = req.body;
+        const newResource = new Resource({ 
+            name,
+            type, 
+            quantity, 
+            supplier 
+        });
 
         await newResource.save();
         res.status(201).json({ message: "Ressource ajoutée avec succès", resource: newResource });
@@ -44,19 +60,19 @@ router.post("/", async (req, res) => {
     }
 });
 
-// Mise à jour d'une ressource
+
 router.put("/:id", async (req, res) => {
-    // Validation des données
+    
     const { error } = validateResource(req.body);
     if (error) return res.status(400).json({ message: error.details[0].message });
     
     try {
         const id = req.params.id;
-        const { nom, description, dateDebut, dateFin } = req.body;
+        const { name, type, quantity, supplier } = req.body;
 
         const updatedResource = await Resource.findByIdAndUpdate(
             id, 
-            { nom, description, dateDebut, dateFin }, 
+            { name, type, quantity, supplier }, 
             { new: true }
         );
 
@@ -70,7 +86,6 @@ router.put("/:id", async (req, res) => {
     }
 });
 
-// Suppression d'une ressource
 router.delete("/:id", async (req, res) => {
     try {
         const id = req.params.id;

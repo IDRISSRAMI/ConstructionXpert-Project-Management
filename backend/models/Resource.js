@@ -2,29 +2,28 @@ const mongoose = require("mongoose");
 const Joi = require("joi");
 
 const resourceSchema = new mongoose.Schema({
-    nom: { type: String, required: true },
-    description: { type: String, required: true },
-    dateDebut: { type: Date, required: true },
-    dateFin: { type: Date, required: true }
+    name: { type: String, required: true },
+    type: { type: String, required: true },
+    quantity: { type: Number, required: true },
+    supplier: { type: String, required: true }
 });
 
-// Validation avec Joi
+
 const validateResource = (data) => {
   const schema = Joi.object({
-    nom: Joi.string().required().messages({
+    name: Joi.string().required().messages({
       'string.empty': "Le nom est requis"
     }),
-    description: Joi.string().required().messages({
-      'string.empty': "La description est requise"
+    type: Joi.string().required().messages({
+      'string.empty': "Le type est requis"
     }),
-    dateDebut: Joi.date().required().messages({
-      'date.base': "La date de debut est invalide",
-      'any.required': "La date de debut est requise"
+    quantity: Joi.number().required().min(0).messages({
+      'number.base': "La quantité est invalide",
+      'any.required': "La quantité est requise",
+      'number.min': "La quantité ne peut pas être négative"
     }),
-    dateFin: Joi.date().required().greater(Joi.ref('dateDebut')).messages({
-      'date.base': "La date de fin est invalide",
-      'any.required': "La date de fin est requise",
-      'date.greater': "La date de fin doit suivre la date de debut"
+    supplier: Joi.string().required().messages({
+      'string.empty': "Le fournisseur est requis"
     })
   });
 

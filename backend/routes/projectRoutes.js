@@ -1,10 +1,10 @@
 const express = require("express");
-const { Project } = require("../models/Project"); // Assurez-vous que Task est bien importé.
+const { Project } = require("../models/Project");
 const { Task } = require("../models/Task");
 const router = express.Router();
 const Joi = require("joi");
 
-// Schéma de validation avec Joi
+
 const validate = (data) => {
   const schema = Joi.object({
     nom: Joi.string().required().messages({
@@ -29,10 +29,10 @@ const validate = (data) => {
     }),
   });
 
-  return schema.validate(data, { abortEarly: false }); //  afficher toutes les erreurs
+  return schema.validate(data, { abortEarly: false });
 };
 
-// Route pour ajouter un projet
+
 router.post("/", async (req, res) => {
   const { error } = validate(req.body);
   if (error) return res.status(400).send({ message: error.details[0].message });
@@ -53,29 +53,29 @@ router.post("/", async (req, res) => {
   }
 });
 
-// Route pour afficher tous les projets
+
 router.get("/Afficher", async (req, res) => {
   try {
-    const projets = await Project.find();
+    const projets = await Project.find().sort({Datedebut:-1/1});
     res.status(200).json(projets);
+
   } catch (error) {
     console.error("Erreur de l'affichage", error);
     res.status(500).json({ error: error.message });
   }
 });
 
-// Route pour supprimer un projet et ses tâches associées
+
 router.delete("/Supprimer/:id", async (req, res) => {
   try {
     const { id } = req.params;
 
-    const deletedTasks = await Task.deleteMany({ projectId: id }); // Suppression des tâches associées au projet
+    const deletedTasks = await Task.deleteMany({ projectId: id });
 
     if (deletedTasks.deletedCount === 0) {
       console.log("Aucune tâche associée trouvée pour ce projet.");
     }
 
-    // Ensuite, supprimer le projet
     const deletedProject = await Project.deleteOne({ _id: id });
 
     if (deletedProject.deletedCount === 0) {
@@ -86,6 +86,34 @@ router.delete("/Supprimer/:id", async (req, res) => {
   } catch (error) {
     console.error('Erreur lors de la suppression du projet:', error);
     res.status(500).json({ message: 'Une erreur est survenue lors de la suppression du projet.' });
+  }
+});
+
+
+router.put("/Modifier/:id", async (req, res) => {
+  const { id } = req.params;
+
+  const { error } = validate(req.body);
+  if (error) return res.status(400).send({ message: error.details[0].message });
+
+  try {
+    const projet = await Project.findById(id);
+    if (!projet) {
+      return res.status(404).json({ message: "Projet non trouvé" });
+    }
+
+    projet.nom = req.body.nom;
+    projet.description = req.body.description;
+    projet.dateDebut = req.body.dateDebut;
+    projet.dateFin = req.body.dateFin;
+    projet.budget = req.body.budget;
+
+    await projet.save();
+
+    res.status(200).json({ message: "Projet modifié avec succès", projet });
+  } catch (error) {
+    console.error("Erreur lors de la modification du projet:", error);
+    res.status(500).json({ error: error.message });
   }
 });
 

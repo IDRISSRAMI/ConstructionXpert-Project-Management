@@ -1,106 +1,158 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Formik, Field, Form, ErrorMessage } from 'formik';
 import * as Yup from 'yup';
+import axios from 'axios';
 
 const validationSchema = Yup.object({
-  name: Yup.string().required('Le nom du projet est requis'),
+  nom: Yup.string().required('Le nom est requis'),
   description: Yup.string().required('La description est requise'),
-  startDate: Yup.date().required('La date de début est requise'),
-  endDate: Yup.date()
+  dateDebut: Yup.date().required('La date de début est requise'),
+  dateFin: Yup.date()
     .required('La date de fin est requise')
-    .min(Yup.ref('startDate'), 'La date de fin ne peut pas être avant la date de début'),
-  budget: Yup.number().required('Le budget est requis').positive('Le budget doit être un nombre positif'),
+    .min(Yup.ref('dateDebut'), 'La date de fin ne peut pas être avant la date de début'),
+  budget: Yup.number()
+    .required('Le budget est requis')
+    .positive('Le budget doit être positif'),
 });
 
 const EditProject = () => {
   const navigate = useNavigate();
-  const { id } = useParams();
+  const { id } = useParams(); 
+  const [initialValues, setInitialValues] = useState({
+    nom: '',
+    description: '',
+    dateDebut: '',
+    dateFin: '',
+    budget: '',
+  });
+  const [loading, setLoading] = useState(true); 
 
-  // Initial values for the form, simulating the data being loaded for the project
-  const initialValues = {
-    nom: 'Projet Existants',
-    description: 'Ceci est une description exemple.',
-    dateDebut: '2025-03-01',
-    dateFin: '2025-03-30',
-    budget: 50000,
+  
+  useEffect(() => {
+    if (id) {
+      const fetchProject = async () => {
+        try {
+          const response = await axios.get(`http://localhost:5000/api/projects/${id}`);
+          const project = response.data;
+          setInitialValues({
+            nom: project.nom,
+            description: project.description,
+            dateDebut: project.dateDebut,
+            dateFin: project.dateFin,
+            budget: project.budget,
+          });
+        } catch (error) {
+          console.error('Erreur lors du chargement du projet:', error);
+        } finally {
+          setLoading(false); 
+        }
+      };
+      fetchProject();
+    } else {
+      setLoading(false); 
+    }
+  }, [id]);
+
+  const handleSubmit = async (values) => {
+    try {
+      if (id) {
+        
+        await axios.put(`http://localhost:5000/api/projects/Modifier/${id}`, values);
+      } else {
+        
+        await axios.post('http://localhost:5000/api/projects', values);
+      }
+      navigate('/');
+    } catch (error) {
+      console.error('Erreur lors de l\'ajout ou de la modification du projet:', error);
+    }
   };
 
-  const handleSubmit = (values) => {
-    console.log('Projet mis à jour:', values);
-    navigate('/projects');
-  };
+  if (loading) {
+    return <div>Chargement en cours...</div>; 
+  }
 
   return (
-    <div className="container mx-auto p-8">
-      <h1 className="text-4xl font-bold text-indigo-800 mb-8">Modifier le Projet</h1>
+    <div className="container mx-auto p-8 bg-cover bg-center min-h-screen" >
+      <h1 className="text-4xl font-bold text-white mb-8 text-center">{id ? 'Modifier un Projet' : 'Ajouter un Projet'}</h1>
 
-      <Formik initialValues={initialValues} validationSchema={validationSchema} onSubmit={handleSubmit}>
+      <Formik
+        initialValues={initialValues}
+        validationSchema={validationSchema}
+        onSubmit={handleSubmit}
+        enableReinitialize 
+      >
         {({ errors, touched }) => (
-          <Form className="bg-white p-8 rounded-lg shadow-xl max-w-3xl mx-auto">
+          <Form className="bg-white p-8 rounded-lg shadow-lg max-w-3xl mx-auto">
+            
             <div className="mb-6">
-              <label htmlFor="name" className="block text-lg font-semibold text-indigo-700">Nom du Projet</label>
+              <label htmlFor="nom" className="block text-lg font-semibold text-gray-800">Nom</label>
               <Field
                 type="text"
-                id="name"
-                name="name"
-                className="w-full p-4 mt-2 border rounded-lg border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                id="nom"
+                name="nom"
+                className="w-full p-4 mt-2 border rounded-lg border-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-500"
               />
               <ErrorMessage name="nom" component="div" className="text-red-500 text-xs mt-1" />
             </div>
 
+            
             <div className="mb-6">
-              <label htmlFor="description" className="block text-lg font-semibold text-indigo-700">Description</label>
+              <label htmlFor="description" className="block text-lg font-semibold text-gray-800">Description</label>
               <Field
                 as="textarea"
                 id="description"
                 name="description"
-                className="w-full p-4 mt-2 border rounded-lg border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full p-4 mt-2 border rounded-lg border-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-500"
                 rows="4"
               />
               <ErrorMessage name="description" component="div" className="text-red-500 text-xs mt-1" />
             </div>
 
+            
             <div className="mb-6 grid grid-cols-2 gap-6">
               <div>
-                <label htmlFor="DateDebut" className="block text-lg font-semibold text-indigo-700">Date de Début</label>
+                <label htmlFor="dateDebut" className="block text-lg font-semibold text-gray-800">Date de Début</label>
                 <Field
                   type="date"
-                  id="DateDebut"
-                  name="DateDebut"
-                  className="w-full p-4 mt-2 border rounded-lg border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  id="dateDebut"
+                  name="dateDebut"
+                  className="w-full p-4 mt-2 border rounded-lg border-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-500"
                 />
-                <ErrorMessage name="DateFin" component="div" className="text-red-500 text-xs mt-1" />
+                <ErrorMessage name="dateDebut" component="div" className="text-red-500 text-xs mt-1" />
               </div>
 
               <div>
-                <label htmlFor="FinDate" className="block text-lg font-semibold text-indigo-700">Date de Fin</label>
+                <label htmlFor="dateFin" className="block text-lg font-semibold text-gray-800">Date de Fin</label>
                 <Field
                   type="date"
-                  id="FinDate"
-                  name="FinDate"
-                  className="w-full p-4 mt-2 border rounded-lg border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  id="dateFin"
+                  name="dateFin"
+                  className="w-full p-4 mt-2 border rounded-lg border-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-500"
                 />
-                <ErrorMessage name="FinDate" component="div" className="text-red-500 text-xs mt-1" />
+                <ErrorMessage name="dateFin" component="div" className="text-red-500 text-xs mt-1" />
               </div>
             </div>
 
+            
             <div className="mb-6">
-              <label htmlFor="budget" className="block text-lg font-semibold text-indigo-700">Budget</label>
+              <label htmlFor="budget" className="block text-lg font-semibold text-gray-800">Budget</label>
               <Field
                 type="number"
                 id="budget"
                 name="budget"
-                className="w-full p-4 mt-2 border rounded-lg border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full p-4 mt-2 border rounded-lg border-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-500"
               />
               <ErrorMessage name="budget" component="div" className="text-red-500 text-xs mt-1" />
             </div>
 
+           
             <button
               type="submit"
-              className="bg-indigo-600 hover:bg-indigo-500 text-white py-3 px-6 rounded-lg w-full transition-colors duration-200 mt-6 focus:outline-none focus:ring-2 focus:ring-indigo-300"
+              className="bg-gray-800 hover:bg-gray-700 text-white py-3 px-6 rounded-lg w-full transition-colors duration-200 mt-6 focus:outline-none focus:ring-2 focus:ring-gray-300"
             >
-              Sauvegarder les Modifications
+              {id ? 'Modifier le Projet' : 'Enregistrer le Projet'}
             </button>
           </Form>
         )}

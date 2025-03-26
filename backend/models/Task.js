@@ -19,7 +19,7 @@ const taskSchema = new mongoose.Schema({
         type: Date, 
         required: true
     },
-    // Ajouter une référence au projet
+    
     projectId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Project',
@@ -27,7 +27,8 @@ const taskSchema = new mongoose.Schema({
     }
 });
 
-// vtous les champs sans obligé
+
+
 const validateTask = (data) => {
   const schema = Joi.object({
     description: Joi.string().required().messages({

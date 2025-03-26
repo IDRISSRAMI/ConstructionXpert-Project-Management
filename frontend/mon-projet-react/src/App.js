@@ -9,8 +9,7 @@ import EditTask from "./pages/EditTask";
 import ResourcesList from "./pages/ResourcesList";
 import Tasks from "./pages/Tasks";
 import AddResource from "./pages/AddResource";
-import About from "./pages/About"; // Import the About page
-
+import About from "./pages/About"; 
 function App() {
   return (
     <Router>

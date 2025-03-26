@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 const Joi = require('joi');
 const projectSchema = new mongoose.Schema({
-  nom: { type: String, required: true },
+  nom: { type: String, required: true, },
   description: { type: String, required: true },
   dateDebut: { type: Date, required: true },
   dateFin: { type: Date, required: true },
@@ -13,7 +13,6 @@ const projectSchema = new mongoose.Schema({
 });
 
 
-// Validation avec Joi (Schema)
 const validateProject = (data) => {
   const schema = Joi.object({
     nom: Joi.string().required().messages({

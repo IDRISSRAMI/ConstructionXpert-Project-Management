@@ -1,115 +1,161 @@
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { Formik, Field, Form, ErrorMessage } from 'formik';
 import * as Yup from 'yup';
 import axios from 'axios';
 
 const validationSchema = Yup.object({
-  name: Yup.string().required('Le nom de la tâche est requis'),
+  nom: Yup.string().required('Le nom de la tâche est requis'),
   description: Yup.string().required('La description est requise'),
-  startDate: Yup.date().required('La date de début est requise'),
-  endDate: Yup.date()
+  dateDebut: Yup.date().required('La date de début est requise'),
+  dateFin: Yup.date()
     .required('La date de fin est requise')
-    .min(Yup.ref('startDate'), 'La date de fin ne peut pas être avant la date de début'),
-  resources: Yup.string().required('Les ressources sont requises'),
+    .min(Yup.ref('dateDebut'), 'La date de fin doit suivre la date de début'),
+  projectId: Yup.string().required('Le projet est requis'),
 });
 
 const AddTask = () => {
   const navigate = useNavigate();
+  const { projectId } = useParams();
+  const [projects, setProjects] = useState([]);
+  const [selectedProject, setSelectedProject] = useState('');
+
+  useEffect(() => {
+    const fetchProjects = async () => {
+      try {
+        const response = await axios.get('http://localhost:5000/api/projects/Afficher');
+        setProjects(response.data);
+
+        if (projectId) {
+          const project = response.data.find(p => p._id === projectId);
+          if (project) {
+            setSelectedProject(project.nom);
+          }
+        }
+      } catch (error) {
+        console.error('Erreur lors de la récupération des projets:', error);
+      }
+    };
+    fetchProjects();
+  }, [projectId]);
 
   const handleSubmit = async (values) => {
     try {
-      await axios.post('http://localhost:5000/api/tasks', values);
+      const selectedProject = projects.find(project => project.nom === values.projectId);
+      if (!selectedProject) {
+        throw new Error('Projet non trouvé');
+      }
+
+      const taskData = {
+        nom: values.nom,
+        description: values.description,
+        dateDebut: values.dateDebut,
+        dateFin: values.dateFin,
+        projectId: selectedProject._id,
+      };
+
+      await axios.post('http://localhost:5000/api/tasks', taskData);
       navigate('/tasks');
     } catch (error) {
-      console.error('Erreur lors de l\'ajout de la tâche:', error);
+      console.error('Erreur lors de l\'ajout de la tâche:', error.response?.data || error.message);
     }
   };
 
   return (
-    <div className="container mx-auto p-8 bg-gradient-to-r from-green-900 to-teal-900 min-h-screen">
-      <h1 className="text-4xl font-bold text-white mb-8">Ajouter une Tâche</h1>
-
-      <Formik
-        initialValues={{
-          nom:'',
-          description: '',
-          startDate: '',
-          dateFin: '',
-          resources: '',
-        }}
-        validationSchema={validationSchema}
-        onSubmit={handleSubmit}
-      >
-        {({ errors, touched }) => (
-          <Form className="bg-white p-8 rounded-lg shadow-xl max-w-3xl mx-auto">
-            <div className="mb-6">
-              <label htmlFor="nome" className="block text-lg font-semibold text-teal-700">Nom de la Tâche</label>
-              <Field
-                type="text"
-                id="name"
-                name="name"
-                className="w-full p-4 mt-2 border rounded-lg border-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-500"
-              />
-              <ErrorMessage name="name" component="div" className="text-red-500 text-xs mt-1" />
-            </div>
-
-            <div className="mb-6">
-              <label htmlFor="description" className="block text-lg font-semibold text-teal-700">Description</label>
-              <Field
-                as="textarea"
-                id="description"
-                name="description"
-                className="w-full p-4 mt-2 border rounded-lg border-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-500"
-                rows="4"
-              />
-              <ErrorMessage name="description" component="div" className="text-red-500 text-xs mt-1" />
-            </div>
-
-            <div className="mb-6 grid grid-cols-2 gap-6">
+    <div className="min-h-screen flex items-center justify-center bg-gray-100 p-6">
+      <div className="bg-white p-10 rounded-xl shadow-xl max-w-lg w-full border border-gray-300">
+        <h1 className="text-3xl font-bold text-center text-gray-800 mb-6">Ajouter une Tâche</h1>
+        <Formik
+          initialValues={{
+            nom: '',
+            description: '',
+            dateDebut: '',
+            dateFin: '',
+            projectId: selectedProject,
+          }}
+          validationSchema={validationSchema}
+          onSubmit={handleSubmit}
+        >
+          {({ errors, touched, setFieldValue }) => (
+            <Form className="space-y-6">
               <div>
-                <label htmlFor="startDate" className="block text-lg font-semibold text-teal-700">Date de Début</label>
+                <label htmlFor="nom" className="block text-gray-700 font-medium mb-1">Nom de la Tâche</label>
                 <Field
-                  type="date"
-                  id="startDate"
-                  name="startDate"
-                  className="w-full p-4 mt-2 border rounded-lg border-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  type="text"
+                  id="nom"
+                  name="nom"
+                  className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-gray-500 outline-none transition duration-300 ${errors.nom && touched.nom ? 'border-red-500' : 'border-gray-400'}`}
                 />
-                <ErrorMessage name="startDate" component="div" className="text-red-500 text-xs mt-1" />
+                <ErrorMessage name="nom" component="div" className="text-red-500 text-sm mt-1" />
               </div>
 
               <div>
-                <label htmlFor="endDate" className="block text-lg font-semibold text-teal-700">Date de Fin</label>
+                <label htmlFor="description" className="block text-gray-700 font-medium mb-1">Description</label>
                 <Field
-                  type="date"
-                  id="endDate"
-                  name="endDate"
-                  className="w-full p-4 mt-2 border rounded-lg border-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  as="textarea"
+                  id="description"
+                  name="description"
+                  className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-gray-500 outline-none transition duration-300"
+                  rows="4"
                 />
-                <ErrorMessage name="endDate" component="div" className="text-red-500 text-xs mt-1" />
+                <ErrorMessage name="description" component="div" className="text-red-500 text-sm mt-1" />
               </div>
-            </div>
 
-            <div className="mb-6">
-              <label htmlFor="resources" className="block text-lg font-semibold text-teal-700">Ressources</label>
-              <Field
-                type="text"
-                id="resources"
-                name="resources"
-                className="w-full p-4 mt-2 border rounded-lg border-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-500"
-              />
-              <ErrorMessage name="resources" component="div" className="text-red-500 text-xs mt-1" />
-            </div>
+              <div className="grid grid-cols-2 gap-6">
+                <div>
+                  <label htmlFor="dateDebut" className="block text-gray-700 font-medium mb-1">Date de Début</label>
+                  <Field
+                    type="date"
+                    id="dateDebut"
+                    name="dateDebut"
+                    className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-gray-500 outline-none transition duration-300"
+                  />
+                  <ErrorMessage name="dateDebut" component="div" className="text-red-500 text-sm mt-1" />
+                </div>
 
-            <button
-              type="submit"
-              className="bg-teal-600 hover:bg-teal-500 text-white py-3 px-6 rounded-lg w-full transition-colors duration-200 mt-6 focus:outline-none focus:ring-2 focus:ring-teal-300"
-            >
-              Enregistrer la Tâche
-            </button>
-          </Form>
-        )}
-      </Formik>
+                <div>
+                  <label htmlFor="dateFin" className="block text-gray-700 font-medium mb-1">Date de Fin</label>
+                  <Field
+                    type="date"
+                    id="dateFin"
+                    name="dateFin"
+                    className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-gray-500 outline-none transition duration-300"
+                  />
+                  <ErrorMessage name="dateFin" component="div" className="text-red-500 text-sm mt-1" />
+                </div>
+              </div>
+
+              <div>
+                <label htmlFor="projectId" className="block text-gray-700 font-medium mb-1">Projet</label>
+                <Field
+                  as="select"
+                  id="projectId"
+                  name="projectId"
+                  className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-gray-500 outline-none transition duration-300"
+                  value={selectedProject}
+                  onChange={(e) => {
+                    setSelectedProject(e.target.value);
+                    setFieldValue('projectId', e.target.value);
+                  }}
+                >
+                  <option value="">Sélectionnez un projet</option>
+                  {projects.map((project) => (
+                    <option key={project._id} value={project.nom}>{project.nom}</option>
+                  ))}
+                </Field>
+                <ErrorMessage name="projectId" component="div" className="text-red-500 text-sm mt-1" />
+              </div>
+
+              <button
+                type="submit"
+                className="w-full bg-gray-700 hover:bg-gray-800 text-white py-3 rounded-lg transition-all duration-300 font-semibold"
+              >
+                Enregistrer la Tâche
+              </button>
+            </Form>
+          )}
+        </Formik>
+      </div>
     </div>
   );
 };

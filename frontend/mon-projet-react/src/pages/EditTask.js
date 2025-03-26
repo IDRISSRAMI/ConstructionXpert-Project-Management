@@ -5,35 +5,50 @@ import * as Yup from 'yup';
 import axios from 'axios';
 
 const validationSchema = Yup.object({
-  name: Yup.string().required('Le nom de la tâche est requis'),
+  nom: Yup.string().required('Le nom de la tâche est requis'),
   description: Yup.string().required('La description est requise'),
-  startDate: Yup.date().required('La date de début est requise'),
-  endDate: Yup.date()
+  dateDebut: Yup.date().required('La date de début est requise'),
+  dateFin: Yup.date()
     .required('La date de fin est requise')
-    .min(Yup.ref('startDate'), 'La date de fin ne peut pas être avant la date de début'),
-  resources: Yup.string().required('Les ressources sont requises'),
+    .min(Yup.ref('dateDebut'), 'La date de fin ne peut pas être avant la date de début'),
+  projectId: Yup.string().required('Le projet est requis'),
 });
 
 const EditTask = () => {
   const navigate = useNavigate();
   const { id } = useParams();
   const [task, setTask] = useState(null);
+  const [projects, setProjects] = useState([]);
 
   useEffect(() => {
-    const fetchTask = async () => {
+    const fetchData = async () => {
       try {
-        const response = await axios.get(`http://localhost:5000/api/tasks/${id}`);
-        setTask(response.data);
+        const taskResponse = await axios.get(`http://localhost:5000/api/tasks/${id}`);
+        setTask(taskResponse.data);
+
+        const projectsResponse = await axios.get('http://localhost:5000/api/projects/Afficher');
+        setProjects(projectsResponse.data);
       } catch (error) {
-        console.error('Erreur lors de la récupération de la tâche:', error);
+        console.error('Erreur lors de la récupération des données:', error);
       }
     };
-    fetchTask();
+    fetchData();
   }, [id]);
 
   const handleSubmit = async (values) => {
     try {
-      await axios.put(`http://localhost:5000/api/tasks/${id}`, values);
+      const selectedProject = projects.find(project => project.nom === values.projectId);
+      if (!selectedProject) {
+        throw new Error('Projet non trouvé');
+      }
+
+      await axios.put(`http://localhost:5000/api/tasks/${id}`, {
+        nom: values.nom,
+        description: values.description,
+        dateDebut: values.dateDebut,
+        dateFin: values.dateFin,
+        projectId: selectedProject._id,
+      });
       navigate('/tasks');
     } catch (error) {
       console.error('Erreur lors de la mise à jour de la tâche:', error);
@@ -50,11 +65,11 @@ const EditTask = () => {
 
       <Formik
         initialValues={{
-          name: task.name,
+          nom: task.nom || '',
           description: task.description,
-          startDate: task.startDate,
-          endDate: task.endDate,
-          resources: task.resources,
+          dateDebut: task.dateDebut.split('T')[0],
+          dateFin: task.dateFin.split('T')[0],
+          projectId: projects.find(project => project._id === task.projectId)?.nom || '',
         }}
         validationSchema={validationSchema}
         onSubmit={handleSubmit}
@@ -62,11 +77,11 @@ const EditTask = () => {
         {({ errors, touched }) => (
           <Form className="bg-white p-8 rounded-lg shadow-xl max-w-3xl mx-auto">
             <div className="mb-6">
-              <label htmlFor="name" className="block text-lg font-semibold text-teal-700">Nom de la Tâche</label>
+              <label htmlFor="nom" className="block text-lg font-semibold text-teal-700">Nom de la Tâche</label>
               <Field
                 type="text"
-                id="name"
-                name="name"
+                id="nom"
+                name="nom"
                 className="w-full p-4 mt-2 border rounded-lg border-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-500"
               />
               <ErrorMessage name="nom" component="div" className="text-red-500 text-xs mt-1" />
@@ -86,37 +101,44 @@ const EditTask = () => {
 
             <div className="mb-6 grid grid-cols-2 gap-6">
               <div>
-                <label htmlFor="DateDebut" className="block text-lg font-semibold text-teal-700">Date de Début</label>
+                <label htmlFor="dateDebut" className="block text-lg font-semibold text-teal-700">Date de Début</label>
                 <Field
                   type="date"
-                  id="DateDebut"
-                  name="DateDebut"
+                  id="dateDebut"
+                  name="dateDebut"
                   className="w-full p-4 mt-2 border rounded-lg border-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-500"
                 />
-                <ErrorMessage name="DebutDate" component="div" className="text-red-500 text-xs mt-1" />
+                <ErrorMessage name="dateDebut" component="div" className="text-red-500 text-xs mt-1" />
               </div>
 
               <div>
-                <label htmlFor="FinDate" className="block text-lg font-semibold text-teal-700">Date de Fin</label>
+                <label htmlFor="dateFin" className="block text-lg font-semibold text-teal-700">Date de Fin</label>
                 <Field
                   type="date"
-                  id="FinDate"
-                  name="FinDate"
+                  id="dateFin"
+                  name="dateFin"
                   className="w-full p-4 mt-2 border rounded-lg border-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-500"
                 />
-                <ErrorMessage name="FinDate" component="div" className="text-red-500 text-xs mt-1" />
+                <ErrorMessage name="dateFin" component="div" className="text-red-500 text-xs mt-1" />
               </div>
             </div>
 
             <div className="mb-6">
-              <label htmlFor="resources" className="block text-lg font-semibold text-teal-700">Ressources</label>
+              <label htmlFor="projectId" className="block text-lg font-semibold text-teal-700">Projet</label>
               <Field
-                type="text"
-                id="resources"
-                name="resources"
+                as="select"
+                id="projectId"
+                name="projectId"
                 className="w-full p-4 mt-2 border rounded-lg border-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-500"
-              />
-              <ErrorMessage name="resources" component="div" className="text-red-500 text-xs mt-1" />
+              >
+                <option value="">Sélectionnez un projet</option>
+                {projects.map((project) => (
+                  <option key={project._id} value={project.nom}>
+                    {project.nom}
+                  </option>
+                ))}
+              </Field>
+              <ErrorMessage name="projectId" component="div" className="text-red-500 text-xs mt-1" />
             </div>
 
             <button
